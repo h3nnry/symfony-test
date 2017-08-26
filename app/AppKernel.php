@@ -9,6 +9,10 @@ use Symfony\Component\HttpKernel\HttpKernelInterface;
 
 class AppKernel extends Kernel
 {
+
+    // http header admin value
+    const ADMIN_HEADER = 'test';
+
     public function registerBundles()
     {
         $bundles = [
@@ -79,7 +83,7 @@ class AppKernel extends Kernel
         }
 
         //Getting path info from the request and checking if bundle, controller and action exists
-        $route = $this->loadRoute($request->getPathInfo());
+        $route = $this->loadRoute($request->getPathInfo(), $request);
 
         if (false === $route) {
             $response = new Response('Not Found', 404);
@@ -97,7 +101,7 @@ class AppKernel extends Kernel
      * @param $pathInfo
      * @return bool|string
      */
-    protected function loadRoute($pathInfo)
+    protected function loadRoute($pathInfo, Request $request)
     {
         $pathInfo = substr($pathInfo, 1);
         $pathInfoArr = explode('/', $pathInfo);
@@ -109,12 +113,35 @@ class AppKernel extends Kernel
         list($bundle, $controller, $action) = $pathInfoArr;
         $ucfirstBundle = ucfirst(strtolower($bundle));
         $ucfirstController = ucfirst(strtolower($controller));
+
+        if($ucfirstBundle === 'Admin') {
+            $isAdmin = $this->checkAdminHeaders($request);
+            if (!$isAdmin) {
+                return false;
+            }
+        }
+
         $className = "{$ucfirstBundle}Bundle\\Controller\\{$ucfirstController}Controller";
 
         if (is_a($className, 'Symfony\Bundle\FrameworkBundle\Controller\Controller', true)
             && in_array("{$action}Action", get_class_methods($className), true)) {
             return "{$className}::{$action}Action";
         }
+        return false;
+    }
+
+    /**
+     * Function to check headers for request to AdminBundle controllers
+     * @param Request $request
+     */
+    protected function checkAdminHeaders(Request $request)
+    {
+        $headers = $request->headers->all();
+
+        if (isset($headers['admin']) && $headers['admin'][0] == self::ADMIN_HEADER) {
+            return true;
+        }
+
         return false;
     }
 }
