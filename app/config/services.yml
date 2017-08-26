@@ -33,3 +33,9 @@ services:
     # AppBundle\Service\ExampleService:
     #     arguments:
     #         $someArgument: 'some_value'
+
+    kernel.subscriber.router_listener:
+            class: AutoRoutingBundle\EventListener\AutoRoutingListener
+            arguments: ['@service_container']
+            tags:
+                - { name: kernel.event_listener, event: kernel.request, priority: 33 }

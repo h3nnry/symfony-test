@@ -24,6 +24,7 @@ class AppKernel extends Kernel
             new Doctrine\Bundle\DoctrineBundle\DoctrineBundle(),
             new Sensio\Bundle\FrameworkExtraBundle\SensioFrameworkExtraBundle(),
             new AppBundle\AppBundle(),
+            new AutoRoutingBundle\AutoRoutingBundle(),
         ];
 
         if (in_array($this->getEnvironment(), ['dev', 'test'], true)) {
@@ -68,32 +69,32 @@ class AppKernel extends Kernel
      * @param bool $catch
      * @return Response
      */
-    public function handle(Request $request, $type = HttpKernelInterface::MASTER_REQUEST, $catch = true)
-    {
-        if (false === $this->booted) {
-            $this->boot();
-        }
-
-        // Get the response from parent, this is need to be done to check the route if it's one of defined routes
-        $response = parent::handle($request);
-
-        // We will return content if statusCode is 200
-        if ($response->getStatusCode() === 200) {
-            return $response;
-        }
-
-        //Getting path info from the request and checking if bundle, controller and action exists
-        $route = $this->loadRoute($request->getPathInfo(), $request);
-
-        if (false === $route) {
-            $response = new Response('Not Found', 404);
-            $response->send();
-        } else {
-            $request->attributes->set('_controller', $route);
-            return parent::handle($request);
-        }
-
-    }
+//    public function handle(Request $request, $type = HttpKernelInterface::MASTER_REQUEST, $catch = true)
+//    {
+//        if (false === $this->booted) {
+//            $this->boot();
+//        }
+//
+//        // Get the response from parent, this is need to be done to check the route if it's one of defined routes
+//        $response = parent::handle($request);
+//
+//        // We will return content if statusCode is 200
+//        if ($response->getStatusCode() === 200) {
+//            return $response;
+//        }
+//
+//        //Getting path info from the request and checking if bundle, controller and action exists
+//        $route = $this->loadRoute($request->getPathInfo(), $request);
+//
+//        if (false === $route) {
+//            $response = new Response('Not Found', 404);
+//            $response->send();
+//        } else {
+//            $request->attributes->set('_controller', $route);
+//            return parent::handle($request);
+//        }
+//
+//    }
 
     /**
      * Function to check if bundle, controller and action provided in the request are valid
