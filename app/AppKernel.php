@@ -3,6 +3,10 @@
 use Symfony\Component\HttpKernel\Kernel;
 use Symfony\Component\Config\Loader\LoaderInterface;
 
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\HttpKernelInterface;
+
 class AppKernel extends Kernel
 {
     public function registerBundles()
@@ -50,5 +54,67 @@ class AppKernel extends Kernel
     public function registerContainerConfiguration(LoaderInterface $loader)
     {
         $loader->load($this->getRootDir().'/config/config_'.$this->getEnvironment().'.yml');
+    }
+
+    /**
+     * Rewriting parent function, for enabling auto routing
+     *
+     * @param Request $request
+     * @param int $type
+     * @param bool $catch
+     * @return Response
+     */
+    public function handle(Request $request, $type = HttpKernelInterface::MASTER_REQUEST, $catch = true)
+    {
+        if (false === $this->booted) {
+            $this->boot();
+        }
+
+        // Get the response from parent, this is need to be done to check the route if it's one of defined routes
+        $response = parent::handle($request);
+
+        // We will return content if statusCode is 200
+        if ($response->getStatusCode() === 200) {
+            return $response;
+        }
+
+        //Getting path info from the request and checking if bundle, controller and action exists
+        $route = $this->loadRoute($request->getPathInfo());
+
+        if (false === $route) {
+            $response = new Response('Not Found', 404);
+            $response->send();
+        } else {
+            $request->attributes->set('_controller', $route);
+            return parent::handle($request);
+        }
+
+    }
+
+    /**
+     * Function to check if bundle, controller and action provided in the request are valid
+     * if it's valid we will return string to create route else return false
+     * @param $pathInfo
+     * @return bool|string
+     */
+    protected function loadRoute($pathInfo)
+    {
+        $pathInfo = substr($pathInfo, 1);
+        $pathInfoArr = explode('/', $pathInfo);
+
+        if (count($pathInfoArr) !== 3) {
+            return false;
+        }
+
+        list($bundle, $controller, $action) = $pathInfoArr;
+        $ucfirstBundle = ucfirst(strtolower($bundle));
+        $ucfirstController = ucfirst(strtolower($controller));
+        $className = "{$ucfirstBundle}Bundle\\Controller\\{$ucfirstController}Controller";
+
+        if (is_a($className, 'Symfony\Bundle\FrameworkBundle\Controller\Controller', true)
+            && in_array("{$action}Action", get_class_methods($className), true)) {
+            return "{$className}::{$action}Action";
+        }
+        return false;
     }
 }
